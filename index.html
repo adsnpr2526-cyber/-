@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบรับ-เบิกจ่าย วัสดุไฟฟ้าและประปา - กองช่าง อบต.คลองกระบือ</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Chart.js สำหรับแสดงกราฟ -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Font (Sarabun) -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; }
+        @media print {
+            body * { visibility: hidden; }
+            #printable-area, #printable-area * { visibility: visible; }
+            #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-800 text-white shadow-lg no-print">
+        <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 p-2.5 rounded-xl shadow-inner text-2xl">⚡</div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">ระบบจัดการพัสดุกองช่าง (ไฟฟ้า-ประปา)</h1>
+                    <p class="text-xs text-blue-200">องค์การบริหารส่วนตำบลคลองกระบือ อำเภอ... จังหวัด...</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <div class="text-sm bg-blue-800/80 backdrop-blur px-3.5 py-1.5 rounded-xl border border-blue-600/50 shadow-sm">
+                    ผู้ปฏิบัติงาน: <span id="user-role" class="font-semibold text-blue-200">ช่าง/เจ้าหน้าที่พัสดุ</span>
+                </div>
+                <button onclick="window.print()" class="bg-white text-blue-900 hover:bg-blue-50 px-4 py-1.5 rounded-xl text-sm font-medium transition shadow hover:shadow-md flex items-center gap-1.5">
+                    🖨️ พิมพ์หน้านี้
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white/80 backdrop-blur shadow-sm border-b sticky top-0 z-20 no-print">
+        <div class="container mx-auto px-4 flex space-x-2 md:space-x-4 overflow-x-auto">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="py-3 px-4 font-semibold text-blue-600 border-b-2 border-blue-600 transition whitespace-nowrap flex items-center gap-1.5">📊 แดชบอร์ดและกราฟ</button>
+            <button onclick="switchTab('inventory')" id="nav-inventory" class="py-3 px-4 font-medium text-gray-500 hover:text-blue-600 transition whitespace-nowrap flex items-center gap-1.5">📦 คลังวัสดุคงเหลือ</button>
+            <button onclick="switchTab('withdraw')" id="nav-withdraw" class="py-3 px-4 font-medium text-gray-500 hover:text-blue-600 transition whitespace-nowrap flex items-center gap-1.5">📤 เบิกวัสดุ</button>
+            <button onclick="switchTab('restock')" id="nav-restock" class="py-3 px-4 font-medium text-gray-500 hover:text-blue-600 transition whitespace-nowrap flex items-center gap-1.5">📥 รับวัสดุ/เพิ่มรายการ</button>
+            <button onclick="switchTab('history')" id="nav-history" class="py-3 px-4 font-medium text-gray-500 hover:text-blue-600 transition whitespace-nowrap flex items-center gap-1.5">📋 ประวัติและพิมพ์ใบเบิก</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6 flex-grow" id="printable-area">
+
+        <!-- หัวกระดาษสำหรับเวลาสั่งพิมพ์ -->
+        <div class="hidden print:block text-center mb-6">
+            <h2 class="text-xl font-bold">รายงานสรุปผลการดำเนินงานพัสดุกองช่าง</h2>
+            <p class="text-sm text-gray-600">องค์การบริหารส่วนตำบลคลองกระบือ</p>
+            <hr class="my-2 border-gray-400">
+        </div>
+
+        <!-- 1. แดชบอร์ดและกราฟ (Dashboard & Analytics) -->
+        <section id="section-dashboard" class="space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition">
+                    <div>
+                        <p class="text-xs font-medium text-gray-400">รายการพัสดุทั้งหมด</p>
+                        <h3 id="stat-total" class="text-2xl font-bold text-gray-800 mt-1">0</h3>
+                    </div>
+                    <div class="bg-blue-50 text-blue-600 p-3.5 rounded-xl text-xl shadow-inner">📦</div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition">
+                    <div>
+                        <p class="text-xs font-medium text-gray-400">เบิกจ่ายวันนี้</p>
+                        <h3 id="stat-daily-withdraw" class="text-2xl font-bold text-emerald-600 mt-1">0 รายการ</h3>
+                    </div>
+                    <div class="bg-emerald-50 text-emerald-600 p-3.5 rounded-xl text-xl shadow-inner">📅</div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition">
+                    <div>
+                        <p class="text-xs font-medium text-gray-400">เบิกจ่ายประจำเดือนนี้</p>
+                        <h3 id="stat-monthly-withdraw" class="text-2xl font-bold text-indigo-600 mt-1">0 รายการ</h3>
+                    </div>
+                    <div class="bg-indigo-50 text-indigo-600 p-3.5 rounded-xl text-xl shadow-inner">📈</div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition">
+                    <div>
+                        <p class="text-xs font-medium text-gray-400">วัสดุต่ำกว่ากำหนด (ใกล้หมด)</p>
+                        <h3 id="stat-low" class="text-2xl font-bold text-rose-600 mt-1">0</h3>
+                    </div>
+                    <div class="bg-rose-50 text-rose-600 p-3.5 rounded-xl text-xl shadow-inner">⚠️</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">📊 สัดส่วนจำนวนวัสดุแยกตามหมวดหมู่</h3>
+                    <div class="relative h-64 flex justify-center">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">📈 วัสดุคงเหลือสูงสุด 5 อันดับแรก</h3>
+                    <div class="relative h-64 flex justify-center">
+                        <canvas id="topStockChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-blue-900 to-indigo-900 text-white p-4 rounded-2xl shadow-md text-center flex flex-col sm:flex-row justify-between items-center gap-2">
+                <div class="text-xs text-blue-200">กองช่าง องค์การบริหารส่วนตำบลคลองกระบือ - โปร่งใส ตรวจสอบได้</div>
+                <div class="text-sm font-medium">พัฒนาโปรแกรมโดย: <span class="font-bold underline text-yellow-300">นายอดิศัย นพรัตน์ (ช่างไผ่)</span></div>
+            </div>
+        </section>
+
+        <!-- 2. หน้าคลังวัสดุ -->
+        <section id="section-inventory" class="hidden space-y-4">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                <h2 class="text-lg font-bold text-gray-800">รายการวัสดุในคลังทั้งหมด (อบต.คลองกระบือ)</h2>
+                <div class="flex space-x-2 w-full md:w-auto">
+                    <input type="text" id="search-box" onkeyup="renderInventory()" placeholder="ค้นหาชื่อวัสดุ หรือรหัส..." class="border bg-white rounded-xl px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 flex-grow md:w-64 shadow-sm">
+                    <select id="filter-category" onchange="renderInventory()" class="border bg-white rounded-xl px-3.5 py-2 text-sm outline-none shadow-sm">
+                        <option value="all">ทุกหมวดหมู่</option>
+                        <option value="ไฟฟ้า">ไฟฟ้า</option>
+                        <option value="ประปา">ประปา</option>
+                    </select>
+                </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-gray-50/70 text-gray-600 text-xs font-semibold uppercase tracking-wider border-b">
+                        <tr>
+                            <th class="p-3.5">รหัสพัสดุ</th>
+                            <th class="p-3.5">รายการวัสดุ</th>
+                            <th class="p-3.5">หมวดหมู่</th>
+                            <th class="p-3.5 text-center">คงเหลือ</th>
+                            <th class="p-3.5">หน่วย</th>
+                            <th class="p-3.5 text-center">สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-list" class="divide-y text-sm text-gray-700"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 3. หน้าเบิกวัสดุ -->
+        <section id="section-withdraw" class="hidden max-w-xl mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100">
+            <h2 class="text-lg font-bold text-gray-800 mb-1">📤 ฟอร์มเบิกวัสดุ (กองช่าง อบต.คลองกระบือ)</h2>
+            <p class="text-xs text-gray-400 mb-6">บันทึกรายละเอียดเพื่อตัดสต็อกและออกใบเบิกพัสดุนำไปปฏิบัติงานจริง</p>
+            <form onsubmit="handleWithdraw(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">เลือกวัสดุที่ต้องการเบิก</label>
+                    <select id="withdraw-item" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" required></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">จำนวนที่เบิก</label>
+                    <input type="number" id="withdraw-qty" min="1" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ผู้เบิก (ชื่อ-นามสกุล / ตำแหน่ง / ทีมช่าง)</label>
+                    <input type="text" id="withdraw-by" placeholder="เช่น นายสมชาย ใจดี (ช่างไฟฟ้า อบต.)" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ผู้จ่ายพัสดุ (เจ้าหน้าที่ผู้จ่ายของ)</label>
+                    <input type="text" id="withdraw-giver" placeholder="เช่น นายพัสดุ ขยันยิ่ง" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">วัตถุประสงค์ / สถานที่นำไปใช้</label>
+                    <textarea id="withdraw-note" rows="2" placeholder="เช่น ซ่อมแซมไฟฟ้าสาธารณะ หมู่ 3 ต.คลองกระบือ" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" required></textarea>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition shadow hover:shadow-md">ยืนยันการเบิกและพิมพ์ใบเบิก</button>
+            </form>
+        </section>
+
+        <!-- 4. หน้ารับวัสดุเข้าคลัง / เพิ่มรายการใหม่ -->
+        <section id="section-restock" class="hidden max-w-xl mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100">
+            <h2 class="text-lg font-bold text-gray-800 mb-1">📥 รับวัสดุเข้าคลัง หรือ เพิ่มพัสดุใหม่</h2>
+            <p class="text-xs text-gray-400 mb-5">จัดการเพิ่มจำนวนพัสดุที่มีอยู่เดิม หรือเพิ่มรายการพัสดุชนิดใหม่เข้าระบบ</p>
+            
+            <div class="flex mb-5 bg-gray-100 p-1.5 rounded-xl shadow-inner">
+                <button type="button" onclick="switchRestockMode('existing')" id="mode-existing-btn" class="flex-1 py-2 text-sm font-semibold bg-white rounded-lg shadow-sm transition text-blue-700">รับวัสดุเดิมเข้าคลัง</button>
+                <button type="button" onclick="switchRestockMode('new')" id="mode-new-btn" class="flex-1 py-2 text-sm font-semibold text-gray-500 transition">เพิ่มรายการวัสดุใหม่</button>
+            </div>
+
+            <form id="form-existing-restock" onsubmit="handleRestockExisting(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">เลือกวัสดุที่มีในคลัง</label>
+                    <select id="restock-item" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" required></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">จำนวนที่รับเข้า</label>
+                    <input type="number" id="restock-qty" min="1" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">อ้างอิงเอกสาร / แหล่งที่มา</label>
+                    <input type="text" id="restock-ref" placeholder="เช่น ตามใบสั่งซื้อ PO-68/001" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" required>
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 rounded-xl transition shadow hover:shadow-md">บันทึกรับเข้าคลัง</button>
+            </form>
+
+            <form id="form-new-restock" onsubmit="handleAddNewItem(event)" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">รหัสพัสดุ (เช่น E04 หรือ P04)</label>
+                    <input type="text" id="new-id" placeholder="เช่น E04" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อรายการวัสดุ</label>
+                    <input type="text" id="new-name" placeholder="เช่น โคมไฟถนน LED 50W" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" required>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">หมวดหมู่</label>
+                        <select id="new-category" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm">
+                            <option value="ไฟฟ้า">ไฟฟ้า</option>
+                            <option value="ประปา">ประปา</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">หน่วยนับ</label>
+                        <input type="text" id="new-unit" placeholder="เช่น โคม, เส้น" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" required>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">จำนวนตั้งต้น</label>
+                        <input type="number" id="new-qty" min="0" value="10" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">เตือนเมื่อต่ำกว่า</label>
+                        <input type="number" id="new-minalert" min="1" value="3" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">แหล่งที่มา / งบประมาณ</label>
+                    <input type="text" id="new-ref" placeholder="เช่น งบประมาณประจำปี อบต.คลองกระบือ" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" required>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition shadow hover:shadow-md">บันทึกเพิ่มวัสดุใหม่เข้าระบบ</button>
+            </form>
+        </section>
+
+        <!-- 5. หน้าประวัติการทำรายการและพิมพ์ใบเบิก -->
+        <section id="section-history" class="hidden space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-bold text-gray-800">ประวัติการ รับ-เบิกจ่าย วัสดุ (อบต.คลองกระบือ)</h2>
+                <button onclick="window.print()" class="no-print bg-gray-800 text-white hover:bg-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition shadow flex items-center gap-1.5">
+                    🖨️ พิมพ์รายงานฉบับนี้
+                </button>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-gray-50/70 text-gray-600 text-xs font-semibold uppercase tracking-wider border-b">
+                        <tr>
+                            <th class="p-3.5">วัน-เวลา</th>
+                            <th class="p-3.5">ประเภท</th>
+                            <th class="p-3.5">รายการวัสดุ</th>
+                            <th class="p-3.5 text-center">จำนวน</th>
+                            <th class="p-3.5">รายละเอียด / ผู้ดำเนินการ</th>
+                            <th class="p-3.5 text-center no-print">พิมพ์ใบเบิก</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-list" class="divide-y text-sm text-gray-700"></tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal พิมพ์ใบเบิกเฉพาะรายการ -->
+    <div id="print-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-blue-900 text-white px-6 py-4 flex justify-between items-center no-print">
+                <h3 class="font-bold text-lg">ใบเบิกและจ่ายพัสดุกองช่าง อบต.คลองกระบือ</h3>
+                <button onclick="closePrintModal()" class="text-white hover:text-gray-200 text-xl font-bold">&times;</button>
+            </div>
+            <div class="p-8 overflow-y-auto space-y-6 text-gray-800" id="voucher-content">
+                <div class="text-center space-y-1">
+                    <h2 class="text-xl font-bold">ใบเบิกพัสดุ กองช่าง</h2>
+                    <p class="text-sm">องค์การบริหารส่วนตำบลคลองกระบือ</p>
+                </div>
+                <div class="flex justify-between text-sm border-y border-gray-200 py-3">
+                    <div><strong>เลขที่เอกสาร:</strong> <span id="v-no">-</span></div>
+                    <div><strong>วันที่:</strong> <span id="v-date">-</span></div>
+                </div>
+                <div class="space-y-2 text-sm">
+                    <p><strong>รายการพัสดุที่เบิก:</strong> <span id="v-item" class="font-semibold text-blue-900">-</span></p>
+                    <p><strong>จำนวนที่เบิก:</strong> <span id="v-qty" class="font-bold">-</span></p>
+                    <p><strong>วัตถุประสงค์การใช้งาน:</strong> <span id="v-note">-</span></p>
+                </div>
+                <div class="grid grid-cols-2 gap-8 pt-10 text-center text-sm">
+                    <div class="space-y-12">
+                        <p>ลงชื่อ......................................................ผู้เบิก<br>(<span id="v-by">-</span>)</p>
+                    </div>
+                    <div class="space-y-12">
+                        <p>ลงชื่อ......................................................ผู้จ่ายพัสดุ<br>(<span id="v-giver">-</span>)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-6 py-3 flex justify-end gap-2 border-t no-print">
+                <button onclick="closePrintModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-sm font-medium transition">ปิด</button>
+                <button onclick="window.print()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition flex items-center gap-1">🖨️ พิมพ์ใบเบิกนี้</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white/80 backdrop-blur border-t py-4 text-center text-xs text-gray-500 mt-auto no-print">
+        ระบบสารสนเทศกองช่าง องค์การบริหารส่วนตำบลคลองกระบือ &copy; 2026 - พัฒนาโดย นายอดิศัย นพรัตน์ (ช่างไผ่)
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        const defaultInventory = [
+            { id: 'E01', name: 'หลอดไฟ LED 40W', category: 'ไฟฟ้า', qty: 45, unit: 'หลอด', minAlert: 10 },
+            { id: 'E02', name: 'สายไฟเบอร์ VAF 2x2.5', category: 'ไฟฟ้า', qty: 8, unit: 'ม้วน', minAlert: 5 },
+            { id: 'E03', name: 'เบรกเกอร์ 30A', category: 'ไฟฟ้า', qty: 15, unit: 'ตัว', minAlert: 3 },
+            { id: 'P01', name: 'ท่อ PVC ฟ้า 4 นิ้ว', category: 'ประปา', qty: 20, unit: 'เส้น', minAlert: 5 },
+            { id: 'P02', name: 'ข้อต่อตรง PVC 1 นิ้ว', category: 'ประปา', qty: 120, unit: 'ตัว', minAlert: 30 },
+            { id: 'P03', name: 'ก๊อกน้ำสนาม 1/2 นิ้ว', category: 'ประปา', qty: 4, unit: 'อัน', minAlert: 10 }
+        ];
+
+        let inventory = JSON.parse(localStorage.getItem('klongkrabue_inventory')) || defaultInventory;
+        let history = JSON.parse(localStorage.getItem('klongkrabue_history')) || [];
+        let currentTab = localStorage.getItem('klongkrabue_active_tab') || 'dashboard';
+
+        let categoryChartInstance = null;
+        let topStockChartInstance = null;
+
+        function saveToStorage() {
+            localStorage.setItem('klongkrabue_inventory', JSON.stringify(inventory));
+            localStorage.setItem('klongkrabue_history', JSON.stringify(history));
+            localStorage.setItem('klongkrabue_active_tab', currentTab);
+        }
+
+        function switchTab(tabId) {
+            currentTab = tabId;
+            saveToStorage();
+
+            ['dashboard', 'inventory', 'withdraw', 'restock', 'history'].forEach(id => {
+                const sec = document.getElementById(`section-${id}`);
+                const nav = document.getElementById(`nav-${id}`);
+                if(sec) sec.classList.add('hidden');
+                if(nav) nav.className = "py-3 px-4 font-medium text-gray-500 hover:text-blue-600 transition whitespace-nowrap flex items-center gap-1.5";
+            });
+
+            const targetSec = document.getElementById(`section-${tabId}`);
+            const targetNav = document.getElementById(`nav-${tabId}`);
+            if(targetSec) targetSec.classList.remove('hidden');
+            if(targetNav) targetNav.className = "py-3 px-4 font-semibold text-blue-600 border-b-2 border-blue-600 transition whitespace-nowrap flex items-center gap-1.5";
+
+            if(tabId === 'dashboard') renderDashboard();
+            if(tabId === 'inventory') renderInventory();
+            if(tabId === 'withdraw') populateSelect('withdraw-item');
+            if(tabId === 'restock') { populateSelect('restock-item'); switchRestockMode('existing'); }
+            if(tabId === 'history') renderHistory();
+        }
+
+        function renderDashboard() {
+            const total = inventory.length;
+            const low = inventory.filter(i => i.qty <= i.minAlert).length;
+            const todayStr = new Date().toLocaleDateString('th-TH');
+            const currentMonthYear = new Date().toLocaleDateString('th-TH', { month: '2-digit', year: 'numeric' });
+
+            let dailyCount = 0;
+            let monthlyCount = 0;
+
+            history.forEach(h => {
+                if(h.type === 'เบิกจ่าย') {
+                    if(h.dateOnly === todayStr) dailyCount++;
+                    if(h.monthYear === currentMonthYear) monthlyCount++;
+                }
+            });
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-daily-withdraw').innerText = `${dailyCount} รายการ`;
+            document.getElementById('stat-monthly-withdraw').innerText = `${monthlyCount} รายการ`;
+            document.getElementById('stat-low').innerText = low;
+
+            const ctxCategory = document.getElementById('categoryChart').getContext('2d');
+            if(categoryChartInstance) categoryChartInstance.destroy();
+            categoryChartInstance = new Chart(ctxCategory, {
+                type: 'doughnut',
+                data: {
+                    labels: ['หมวดไฟฟ้า', 'หมวดประปา'],
+                    datasets: [{
+                        data: [
+                            inventory.filter(i => i.category === 'ไฟฟ้า').reduce((sum, i) => sum + i.qty, 0),
+                            inventory.filter(i => i.category === 'ประปา').reduce((sum, i) => sum + i.qty, 0)
+                        ],
+                        backgroundColor: ['#3b82f6', '#06b6d4'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            const sortedByQty = [...inventory].sort((a,b) => b.qty - a.qty).slice(0, 5);
+            const ctxTop = document.getElementById('topStockChart').getContext('2d');
+            if(topStockChartInstance) topStockChartInstance.destroy();
+            topStockChartInstance = new Chart(ctxTop, {
+                type: 'bar',
+                data: {
+                    labels: sortedByQty.map(i => i.name),
+                    datasets: [{
+                        label: 'จำนวนคงเหลือ',
+                        data: sortedByQty.map(i => i.qty),
+                        backgroundColor: '#6366f1',
+                        borderRadius: 8
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function switchRestockMode(mode) {
+            const existingBtn = document.getElementById('mode-existing-btn');
+            const newBtn = document.getElementById('mode-new-btn');
+            const existingForm = document.getElementById('form-existing-restock');
+            const newForm = document.getElementById('form-new-restock');
+
+            if(mode === 'existing') {
+                existingBtn.className = "flex-1 py-2 text-sm font-semibold bg-white rounded-lg shadow-sm transition text-blue-700";
+                newBtn.className = "flex-1 py-2 text-sm font-semibold text-gray-500 transition";
+                existingForm.classList.remove('hidden');
+                newForm.classList.add('hidden');
+                populateSelect('restock-item');
+            } else {
+                newBtn.className = "flex-1 py-2 text-sm font-semibold bg-white rounded-lg shadow-sm transition text-blue-700";
+                existingBtn.className = "flex-1 py-2 text-sm font-semibold text-gray-500 transition";
+                newForm.classList.remove('hidden');
+                existingForm.classList.add('hidden');
+            }
+        }
+
+        function renderInventory() {
+            const search = document.getElementById('search-box').value.toLowerCase();
+            const filterCat = document.getElementById('filter-category').value;
+            const tbody = document.getElementById('inventory-list');
+            tbody.innerHTML = '';
+
+            const filtered = inventory.filter(item => {
+                const matchSearch = item.name.toLowerCase().includes(search) || item.id.toLowerCase().includes(search);
+                const matchCat = filterCat === 'all' || item.category === filterCat;
+                return matchSearch && matchCat;
+            });
+
+            if(filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400">ไม่พบข้อมูลวัสดุในระบบ</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(item => {
+                let statusBadge = `<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-xs font-semibold">ปกติ</span>`;
+                if(item.qty <= item.minAlert) {
+                    statusBadge = `<span class="bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full text-xs font-semibold animate-pulse">⚠️ ต่ำกว่ากำหนด</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-blue-50/40 transition border-b border-gray-50">
+                        <td class="p-3.5 font-mono font-medium text-blue-900">${item.id}</td>
+                        <td class="p-3.5 font-medium text-gray-800">${item.name}</td>
+                        <td class="p-3.5 text-gray-600">${item.category}</td>
+                        <td class="p-3.5 text-center font-bold text-base text-gray-800">${item.qty}</td>
+                        <td class="p-3.5 text-gray-600">${item.unit}</td>
+                        <td class="p-3.5 text-center">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function populateSelect(selectId) {
+            const select = document.getElementById(selectId);
+            if(!select) return;
+            select.innerHTML = '';
+            inventory.forEach(item => {
+                select.innerHTML += `<option value="${item.id}">[${item.id}] ${item.name} (คงเหลือ: ${item.qty} ${item.unit})</option>`;
+            });
+        }
+
+        function handleWithdraw(event) {
+            event.preventDefault();
+            const id = document.getElementById('withdraw-item').value;
+            const qty = parseInt(document.getElementById('withdraw-qty').value);
+            const by = document.getElementById('withdraw-by').value;
+            const giver = document.getElementById('withdraw-giver').value;
+            const note = document.getElementById('withdraw-note').value;
+
+            const item = inventory.find(i => i.id === id);
+            if(item.qty < qty) {
+                alert(`❌ จำนวนในคลังไม่พอ! (คงเหลือเพียง ${item.qty} ${item.unit})`);
+                return;
+            }
+
+            item.qty -= qty;
+            const now = new Date();
+            const historyItem = {
+                id: 'V-' + Math.floor(1000 + Math.random() * 9000),
+                date: now.toLocaleString('th-TH'),
+                dateOnly: now.toLocaleDateString('th-TH'),
+                monthYear: now.toLocaleDateString('th-TH', { month: '2-digit', year: 'numeric' }),
+                type: 'เบิกจ่าย',
+                typeName: 'text-rose-600 bg-rose-50 border border-rose-200',
+                name: item.name,
+                qty: `-${qty} ${item.unit}`,
+                detail: `ผู้เบิก: ${by} | ผู้จ่าย: ${giver} | วัตถุประสงค์: ${note}`,
+                rawBy: by,
+                rawGiver: giver,
+                rawNote: note,
+                rawQty: `${qty} ${item.unit}`
+            };
+
+            history.unshift(historyItem);
+            saveToStorage();
+            alert('✅ บันทึกการเบิกวัสดุเรียบร้อยแล้ว');
+            event.target.reset();
+            openPrintModal(historyItem);
+        }
+
+        function handleRestockExisting(event) {
+            event.preventDefault();
+            const id = document.getElementById('restock-item').value;
+            const qty = parseInt(document.getElementById('restock-qty').value);
+            const ref = document.getElementById('restock-ref').value;
+
+            const item = inventory.find(i => i.id === id);
+            item.qty += qty;
+
+            const now = new Date();
+            history.unshift({
+                id: 'R-' + Math.floor(1000 + Math.random() * 9000),
+                date: now.toLocaleString('th-TH'),
+                dateOnly: now.toLocaleDateString('th-TH'),
+                monthYear: now.toLocaleDateString('th-TH', { month: '2-digit', year: 'numeric' }),
+                type: 'รับเข้าพัสดุ',
+                typeName: 'text-emerald-600 bg-emerald-50 border border-emerald-200',
+                name: item.name,
+                qty: `+${qty} ${item.unit}`,
+                detail: `แหล่งที่มา: ${ref}`
+            });
+
+            saveToStorage();
+            alert('✅ บันทึกรับวัสดุเข้าคลังเรียบร้อยแล้ว');
+            event.target.reset();
+            switchTab('inventory');
+        }
+
+        function handleAddNewItem(event) {
+            event.preventDefault();
+            const id = document.getElementById('new-id').value.trim();
+            const name = document.getElementById('new-name').value.trim();
+            const category = document.getElementById('new-category').value;
+            const unit = document.getElementById('new-unit').value.trim();
+            const qty = parseInt(document.getElementById('new-qty').value);
+            const minAlert = parseInt(document.getElementById('new-minalert').value);
+            const ref = document.getElementById('new-ref').value;
+
+            if(inventory.some(i => i.id === id)) {
+                alert(`❌ รหัสพัสดุ "${id}" ซ้ำกับในระบบแล้ว`);
+                return;
+            }
+
+            inventory.push({ id, name, category, qty, unit, minAlert });
+            const now = new Date();
+            history.unshift({
+                id: 'N-' + Math.floor(1000 + Math.random() * 9000),
+                date: now.toLocaleString('th-TH'),
+                dateOnly: now.toLocaleDateString('th-TH'),
+                monthYear: now.toLocaleDateString('th-TH', { month: '2-digit', year: 'numeric' }),
+                type: 'เพิ่มรายการใหม่',
+                typeName: 'text-blue-600 bg-blue-50 border border-blue-200',
+                name: name,
+                qty: `+${qty} ${unit}`,
+                detail: `รหัส: ${id} | แหล่งที่มา: ${ref}`
+            });
+
+            saveToStorage();
+            alert('✅ เพิ่มรายการพัสดุใหม่เข้าระบบสำเร็จ');
+            event.target.reset();
+            switchTab('inventory');
+        }
+
+        function renderHistory() {
+            const tbody = document.getElementById('history-list');
+            tbody.innerHTML = '';
+
+            if(history.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400">ยังไม่มีประวัติการทำรายการในระบบ</td></tr>`;
+                return;
+            }
+
+            history.forEach((h, index) => {
+                let printBtn = '-';
+                if(h.type === 'เบิกจ่าย') {
+                    printBtn = `<button onclick='openPrintModalByIndex(${index})' class="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-xl text-xs font-medium transition shadow-sm">🖨️ พิมพ์ใบเบิก</button>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-blue-50/40 transition border-b border-gray-50">
+                        <td class="p-3.5 text-xs text-gray-500">${h.date}</td>
+                        <td class="p-3.5"><span class="px-2.5 py-1 rounded-full text-xs font-semibold ${h.typeName}">${h.type}</span></td>
+                        <td class="p-3.5 font-medium text-gray-800">${h.name}</td>
+                        <td class="p-3.5 text-center font-bold text-gray-800">${h.qty}</td>
+                        <td class="p-3.5 text-xs text-gray-600">${h.detail}</td>
+                        <td class="p-3.5 text-center no-print">${printBtn}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function openPrintModal(item) {
+            document.getElementById('v-no').innerText = item.id || 'V-68001';
+            document.getElementById('v-date').innerText = item.date;
+            document.getElementById('v-item').innerText = item.name;
+            document.getElementById('v-qty').innerText = item.rawQty || item.qty;
+            document.getElementById('v-note').innerText = item.rawNote || item.detail;
+            document.getElementById('v-by').innerText = item.rawBy || '-';
+            document.getElementById('v-giver').innerText = item.rawGiver || '-';
+            
+            document.getElementById('print-modal').classList.remove('hidden');
+            document.getElementById('print-modal').classList.add('flex');
+        }
+
+        function openPrintModalByIndex(index) {
+            openPrintModal(history[index]);
+        }
+
+        function closePrintModal() {
+            document.getElementById('print-modal').classList.remove('flex');
+            document.getElementById('print-modal').classList.add('hidden');
+        }
+
+        switchTab(currentTab);
+    </script>
+</body>
+</html>
