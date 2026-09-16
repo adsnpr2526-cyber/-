@@ -163,7 +163,10 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">ผู้จ่ายพัสดุ (เจ้าหน้าที่ผู้จ่ายของ)</label>
-                    <input type="text" id="withdraw-giver" placeholder="เช่น นายพัสดุ ขยันยิ่ง" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" required>
+                    <select id="withdraw-giver" class="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" required>
+                        <option value="นายอดิศัย นพรัตน์ (ตำแหน่ง นายช่างโยธา)">นายอดิศัย นพรัตน์ (ตำแหน่ง นายช่างโยธา)</option>
+                        <option value="นางทัศนีย์ นาคคง (ตำแหน่ง ผู้ช่วยเจ้าพนักงานธุรการ)">นางทัศนีย์ นาคคง (ตำแหน่ง ผู้ช่วยเจ้าพนักงานธุรการ)</option>
+                    </select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">วัตถุประสงค์ / สถานที่นำไปใช้</label>
@@ -266,7 +269,7 @@
 
     </main>
 
-    <!-- Modal พิมพ์ใบเบิกเฉพาะรายการ (ปรับตามแบบฟอร์ม อปท. และเพิ่มผู้อำนวยการกองช่างอนุมัติ) -->
+    <!-- Modal พิมพ์ใบเบิกเฉพาะรายการ -->
     <div id="print-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
             <div class="bg-blue-900 text-white px-6 py-4 flex justify-between items-center no-print">
@@ -292,7 +295,7 @@
                 </div>
 
                 <p>เรียน ผู้อำนวยการกองช่าง</p>
-                <p class="indent-8">ด้วยมีความจำเป็นต้อง and ใช้พัสดุตามรายการข้างล่างนี้ เพื่อใช้ประโยชน์ในราชการขององค์การบริหารส่วนตำบลคลองกระบือ จึงขออนุมัติเบิกพัสดุ ดังรายละเอียดต่อไปนี้:</p>
+                <p class="indent-8">ด้วยมีความจำเป็นต้องใช้พัสดุตามรายการข้างล่างนี้ เพื่อใช้ประโยชน์ในราชการขององค์การบริหารส่วนตำบลคลองกระบือ จึงขออนุมัติเบิกพัสดุ ดังรายละเอียดต่อไปนี้:</p>
 
                 <!-- ตารางรายการพัสดุในใบเบิก -->
                 <table class="w-full border-collapse border border-gray-400 text-center my-4">
@@ -327,13 +330,13 @@
                         <p>
                             ลงชื่อ......................................................ผู้จ่ายพัสดุ<br>
                             (<span id="v-giver" class="font-medium">-</span>)<br>
-                            ตำแหน่ง เจ้าหน้าที่พัสดุ
+                            ตำแหน่งตามรายชื่อ
                         </p>
                     </div>
                     <div class="space-y-10">
                         <p>
                             ลงชื่อ......................................................ผู้อนุมัติ<br>
-                            (......................................................)<br>
+                            (<strong>นายสุธรรม แต้ตระกูล</strong>)<br>
                             ตำแหน่ง ผู้อำนวยการกองช่าง
                         </p>
                     </div>
