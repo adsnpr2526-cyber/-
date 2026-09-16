@@ -297,13 +297,14 @@
                 <p>เรียน ผู้อำนวยการกองช่าง</p>
                 <p class="indent-8">ด้วยมีความจำเป็นต้องใช้พัสดุตามรายการข้างล่างนี้ เพื่อใช้ประโยชน์ในราชการขององค์การบริหารส่วนตำบลคลองกระบือ จึงขออนุมัติเบิกพัสดุ ดังรายละเอียดต่อไปนี้:</p>
 
-                <!-- ตารางรายการพัสดุในใบเบิก -->
+                <!-- ตารางรายการพัสดุในใบเบิก (เพิ่มคอลัมน์คงเหลือ) -->
                 <table class="w-full border-collapse border border-gray-400 text-center my-4">
                     <thead>
                         <tr class="bg-gray-100">
                             <th class="border border-gray-400 p-2 w-16">ลำดับ</th>
                             <th class="border border-gray-400 p-2 text-left">รายการวัสดุ</th>
-                            <th class="border border-gray-400 p-2 w-24">จำนวนที่ขอเบิก</th>
+                            <th class="border border-gray-400 p-2 w-28">คงเหลือ</th>
+                            <th class="border border-gray-400 p-2 w-24">จำนวนเบิก</th>
                             <th class="border border-gray-400 p-2">วัตถุประสงค์ / สถานที่ใช้</th>
                         </tr>
                     </thead>
@@ -311,6 +312,7 @@
                         <tr>
                             <td class="border border-gray-400 p-2">1</td>
                             <td id="v-item" class="border border-gray-400 p-2 text-left font-semibold">-</td>
+                            <td id="v-remaining" class="border border-gray-400 p-2">-</td>
                             <td id="v-qty" class="border border-gray-400 p-2 font-bold">-</td>
                             <td id="v-note" class="border border-gray-400 p-2 text-left">-</td>
                         </tr>
@@ -352,7 +354,7 @@
 
     <!-- Footer -->
     <footer class="bg-white/80 backdrop-blur border-t py-4 text-center text-xs text-gray-500 mt-auto no-print">
-        ระบบสารสนเทศกองช่าง องค์การบริหารส่วนตำบลคลองกระบือ &copy; 2026 - พัฒนาโดย นายอดิศัย นพรัตน์ (ช่างไผ่)
+        ระบบสารสนเทศกองช่าง องค์การบริหารส่วนตำบลคลองกระบือ &copy; 2026 - พัฒนาโดย อดิศัย นพรัตน์ (ช่างไผ่)
     </footer>
 
     <!-- JavaScript -->
@@ -538,7 +540,7 @@
                 return;
             }
 
-            item.qty -= qty;
+            item.qty -= qty; // ตัดสต็อก
             const now = new Date();
             const historyItem = {
                 id: 'V-' + Math.floor(1000 + Math.random() * 9000),
@@ -553,7 +555,8 @@
                 rawBy: by,
                 rawGiver: giver,
                 rawNote: note,
-                rawQty: `${qty} ${item.unit}`
+                rawQty: `${qty} ${item.unit}`,
+                rawRemaining: `${item.qty} ${item.unit}` // เก็บจำนวนคงเหลือหลังเบิกสำหรับแสดงในใบเบิก
             };
 
             history.unshift(historyItem);
@@ -658,6 +661,7 @@
             document.getElementById('v-no').innerText = item.id || 'V-68001';
             document.getElementById('v-date').innerText = item.date;
             document.getElementById('v-item').innerText = item.name;
+            document.getElementById('v-remaining').innerText = item.rawRemaining || '-';
             document.getElementById('v-qty').innerText = item.rawQty || item.qty;
             document.getElementById('v-note').innerText = item.rawNote || item.detail;
             document.getElementById('v-by').innerText = item.rawBy || '-';
